@@ -92,6 +92,9 @@ const
 var
   dev: TBlockserial;
   buf: array[0..MAX_DATA_BYTES] of byte;
+  Major_version, Minor_version: byte;
+  Firmware_name: UnicodeString;
+
 
 procedure initializeComm;  //Implementar algum tipo de auto deteccao de arduino
 procedure askFirmware;     // Does not return the firmware, it is only used to determine if firmata is ready.
@@ -113,27 +116,53 @@ procedure initializeComm;
       if (dev.LastError <> 0) then
          Exit;
 
-      write('Waiting for arduino to initialize...');
+      writeln('Waiting for arduino to initialize...');
       askFirmware;
-      writeln('');
       writeln('Arduino is ready!')
       //sleep(1000);
     end;
 
 procedure askFirmware;
+var
+  idx, idx2: integer;
+  letra: uint16;
+  widecharArray: array[0..MAX_DATA_BYTES] of widechar;
 begin
   buf[0] := START_SYSEX;
   buf[1] := REPORT_FIRMWARE;
   buf[2] := END_SYSEX;
   dev.SendBuffer(@buf,3);
-  dev.Flush;
-  repeat
-        //Write(IntToHex(dev.RecvByte(50), 2), ' ');
-        write('.');
-  until dev.RecvByte(10000) = $00;
-         //keypressed;
-  //dev.RecvBufferEx(@buf,64,1000);
+  dev.Purge;
+  dev.RecvBufferEx(@buf,64,5000);
+
+  //Get and save firmware info acquired
+  Major_version := buf[1];
+  Minor_version := buf[2];
+
+  idx:= 7;
+  idx2 := 0;
+  while idx < MAX_DATA_BYTES do
+  begin
+       letra := buf[idx] OR buf[idx + 1] shr 7;
+       idx += 2;
+       widecharArray[idx2] := wideChar(letra);
+
+       if buf[idx] OR buf[idx + 1] = $F7 then
+          begin
+            widecharArray[idx2 + 1] := #0;
+            Firmware_name := WideCharToString(widecharArray);
+            write('Firmware: ');
+            write(Major_version);
+            write('.');
+            write(Minor_version);
+            write(' ');
+            writeln(Firmware_name);
+            break;
+          end;
+       idx2 += 1;
   end;
+
+end;
 
 procedure setPinMode( pin: byte; mode: byte);
 begin
@@ -153,9 +182,9 @@ begin
 
 procedure analogWrite(pin: byte; value: byte);
 begin
-  buf[0] := ANALOG_MESSAGE;
-  buf[1] := pin;
-  buf[2] := value;
+  buf[0] := ANALOG_MESSAGE OR pin;
+  buf[1] := value AND $7F;
+  buf[2] := value >> 7 AND $7F;
   dev.SendBuffer(@buf,3);
   end;
 
