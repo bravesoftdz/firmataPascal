@@ -100,7 +100,11 @@ procedure initializeComm;  //Implementar algum tipo de auto deteccao de arduino
 procedure askFirmware;     // Does not return the firmware, it is only used to determine if firmata is ready.
 procedure setPinMode( pin: byte; mode: byte);       //working
 procedure digitalWrite( pin: byte; value: byte);    //working
-procedure analogWrite(pin: byte; value: byte);
+procedure analogWrite(pin: byte; value: byte);      //working
+procedure digitalReport(port: byte; enabled: boolean);
+procedure analogReport(pin: byte; enabled: boolean);
+procedure firmataParser();
+procedure purgeBuffer();
 
 implementation
 
@@ -186,6 +190,65 @@ begin
   buf[1] := value AND $7F;
   buf[2] := value >> 7 AND $7F;
   dev.SendBuffer(@buf,3);
+  end;
+
+procedure digitalReport(port: byte; enabled: boolean);
+var
+  repetir: boolean;
+begin
+  buf[0] := REPORT_DIGITAL OR port;
+  buf[1] := byte(enabled);
+  dev.SendBuffer(@buf,2);
+end;
+
+procedure analogReport(pin: byte; enabled: boolean);
+var
+  repetir: boolean;
+  leitura: uint16;
+begin
+  buf[0] := REPORT_ANALOG OR pin;
+  buf[1] := byte(enabled);
+  dev.SendBuffer(@buf,2);
+end;
+
+procedure purgeBuffer();
+var idx:integer;
+begin
+  idx:= 0;
+  while idx < MAX_DATA_BYTES do
+  begin
+       buf[idx] := 0;
+       idx +=1;
+  end;
+end;
+
+procedure firmataParser();
+var
+  leitura: uint16;
+  begin
+    dev.CanRead(-1);
+    dev.RecvBufferEx(@buf,10,1);
+    if ( buf[0] = ANALOG_MESSAGE ) then
+       begin
+            leitura:= buf[1] OR buf[2] << 7;
+            //write(leitura);
+            //writeln();
+       end
+    else
+        if  ( buf[0]= DIGITAL_MESSAGE ) then
+           begin
+                write(buf[0]);
+                write('     ');
+                write(buf[1]);
+                write('     ');
+                write(buf[2]);
+                write('     ');
+                writeln();
+           end;
+
+    //writeln('');
+    dev.Purge();
+    purgeBuffer();
   end;
 
 end.
