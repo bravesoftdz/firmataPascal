@@ -50,6 +50,8 @@ procedure firmataParser();
 procedure listenTx();
 procedure purgeBuffer();
 
+function ToBoolean(int : integer) : boolean;
+
 implementation
 
 procedure initializeComm;
@@ -58,7 +60,7 @@ procedure initializeComm;
       dev:= TBlockserial.Create;
       writeln('Waiting for arduino to initialize...');
       writeln( synaser.GetSerialPortNames);
-      dev.Connect('COM6');
+      dev.Connect('COM5');
 
       dev.config(57600,8,'N',SB1,false,false);
 
@@ -92,6 +94,15 @@ begin
             analogValue := $0000;
        end;
   end;
+
+end;
+
+function ToBoolean(int : integer) : boolean;
+begin
+  if int <> 0 then
+     ToBoolean := true
+  else
+     ToBoolean := false;
 
 end;
 
@@ -179,15 +190,8 @@ begin
 end;
 
 function digitalRead(pin: integer) : integer;
-var
-  port : integer;
 begin
-   port:= pin div 8;
-   //digitalReport(port, true);
    digitalRead := integer(pins[pin].digitalValue);
-   //digitalReport(port, false);
-   //write(pins[pin].digitalValue);
-   //write(#13);
 end;
 
 function analogRead(pin:integer)  : integer;
@@ -228,7 +232,7 @@ var
                 Read := buf[1] OR buf[2] << 7;
                 for pin := (port * 8) to (pin + 8) do
                 begin
-                     pins[pin].digitalValue:= boolean(read AND mask);
+                     pins[pin].digitalValue:= ToBoolean(read AND mask);
                      mask := mask shl 1;
                 end;
                 //write(Read);

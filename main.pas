@@ -31,7 +31,7 @@ implementation
 
 {$R *.lfm}
     begin
-
+       (*
       //FF = apagado
       //00 = Full duty
       red := $0A;
@@ -92,9 +92,9 @@ implementation
                   sleep(5);
                 end;
 
+       *)
 
 
-      (*
       initializeComm;
 
 
@@ -102,23 +102,20 @@ implementation
       setPinMode($A0, PIN_MODE_ANALOG);
       analogReport(0, true);
 
-      setPinMode($04, PIN_MODE_INPUT);
-      digitalReport($00, true);
-
-
+      setPinMode($02, PIN_MODE_INPUT);
+      //digitalReport($00, true);
 
 
       repetir := true;
       while repetir = true do
            begin
 
-              write(digitalRead($04));
+              //write(digitalRead($02));
               write(analogRead(0));
               write(#13);
-              sleep(1000);
            end;
-       *)
-           end;
+
+
 
   end.
 
